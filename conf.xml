@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+  <device id="1" protocol="http" title="Device 1" >
+    <Coil>
+		<address>0033</address>
+		<description>Red signal</description>
+		<value>0</value>
+	</Coil>
+	<Coil>
+		<address>0040</address>
+		<description>Yellow signal</description>
+		<value>0</value>
+	</Coil>
+	<Coil>
+		<address>0041</address>
+		<description>Green signal</description>
+		<value>0</value>
+	</Coil>
+  </device>
+</configuration>
