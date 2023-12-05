@@ -1,19 +1,20 @@
 #include <iostream>
-#include <filesystem>
+#include <vector>
+#include <event2/buffer.h>
+#include <event2/event.h>
+#include <event2/http.h>
 #include "tinyxml2.h"
+#include "server.h"
+#include "modbus_unit.h"
+
+std::vector<modbus_unit *> units;
 
 int main()
 {
     tinyxml2::XMLDocument doc;
-
+    // Получаем путь к файлу конфигурации
     std::filesystem::path currentPath = std::filesystem::current_path().parent_path();
-
-    // Определяем относительный путь к файлу конфигурации
     std::string confFilePath = currentPath.string() + "/conf.xml";
-
-    std::cout << confFilePath << std::endl;
-
-    // Загружаем файл
     doc.LoadFile(confFilePath.c_str());
 
     // Проверяем файл на целостность
@@ -21,7 +22,7 @@ int main()
     if (root == nullptr)
     {
         std::cout << "Failed to open XML file" << std::endl;
-        return 1;
+        return 0;
     }
 
     // Считываем устройство
@@ -29,31 +30,51 @@ int main()
     if (deviceElement == nullptr)
     {
         std::cout << "Failed to find device element" << std::endl;
-        return 1;
+        return 0;
     }
 
-    std::string deviceId = deviceElement->Attribute("id");
-    std::string protocol = deviceElement->Attribute("protocol");
-    std::string deviceTitle = deviceElement->Attribute("title");
-
-    std::cout << "Device ID: " << deviceId << std::endl;
-    std::cout << "Protocol: " << protocol << std::endl;
-    std::cout << "Title: " << deviceTitle << std::endl;
-
-    tinyxml2::XMLElement *coilElement = deviceElement->FirstChildElement("Coil");
-
-    while (coilElement != nullptr)
+    while (deviceElement != nullptr)
     {
-        std::string coilAddress = coilElement->FirstChildElement("address")->GetText();
-        std::string coilDescription = coilElement->FirstChildElement("description")->GetText();
-        std::string coilValue = coilElement->FirstChildElement("value")->GetText();
+        tinyxml2::XMLAttribute const *attr_id = deviceElement->FindAttribute("id");
+        tinyxml2::XMLAttribute const *attr_protocol = deviceElement->FindAttribute("protocol");
+        tinyxml2::XMLAttribute const *attr_title = deviceElement->FindAttribute("title");
 
-        std::cout << "Coil address: " << coilAddress << std::endl;
-        std::cout << "Coil description: " << coilDescription << std::endl;
-        std::cout << "Coil value: " << coilValue << std::endl;
+        if (attr_id != nullptr)
+        {
+            std::uint8_t device_id = std::stoul(attr_id->Value());
+            modbus_unit *unit = new modbus_unit(device_id, attr_protocol->Value(), attr_title->Value());
 
-        coilElement = coilElement->NextSiblingElement("Coil");
+            tinyxml2::XMLElement *registerElement = deviceElement->FirstChildElement("register");
+
+            while (registerElement != nullptr)
+            {
+                tinyxml2::XMLAttribute const *attr_address = registerElement->FindAttribute("address");
+                tinyxml2::XMLAttribute const *attr_value = registerElement->FindAttribute("value");
+                tinyxml2::XMLAttribute const *attr_dataType = registerElement->FindAttribute("dataType");
+                tinyxml2::XMLAttribute const *attr_regType = registerElement->FindAttribute("regType");
+
+                std::uint16_t reg_address = std::stoul(attr_address->Value(), nullptr, 16);
+                unit->add_register(reg_address, attr_value->Value(), attr_dataType->Value(), attr_regType->Value());
+
+                registerElement = registerElement->NextSiblingElement("register");
+            }
+            units.push_back(unit);
+        }
+        deviceElement = deviceElement->NextSiblingElement("device");
     }
+
+    struct event_base *base = event_base_new();
+
+    server server(base);
+
+    server.start();
+    
+    for (const auto &unit : units) {
+        unit->display_info();
+    }
+
+    event_base_dispatch(base);
+    event_base_free(base);
 
     return 0;
 }

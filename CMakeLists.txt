@@ -3,10 +3,17 @@ project(emulator)
 
 set(TINYXML2_DIR ${CMAKE_SOURCE_DIR}/CMakeInclude/tinyxml2)
 
-include_directories(${TINYXML2_DIR})
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeInclude)
 
-link_directories(${TINYXML2_DIR})
+find_package(Libevent REQUIRED)
 
-add_executable(emulator main.cpp)
+include_directories(${TINYXML2_DIR} ${Libevent_INCLUDE_DIRS})
 
-target_link_libraries(emulator tinyxml2)
+link_directories(${TINYXML2_DIR} ${Libevent_LIBRARY_DIRS})
+
+add_executable(emulator 
+    main.cpp 
+    server.cpp 
+    modbus_unit.cpp)
+
+target_link_libraries(emulator tinyxml2 ${Libevent_LIBRARIES})

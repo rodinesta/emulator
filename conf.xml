@@ -1,20 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<configuration>
+<config>
   <device id="1" protocol="http" title="Device 1" >
-    <Coil>
-		<address>0033</address>
-		<description>Red signal</description>
-		<value>0</value>
-	</Coil>
-	<Coil>
-		<address>0040</address>
-		<description>Yellow signal</description>
-		<value>0</value>
-	</Coil>
-	<Coil>
-		<address>0041</address>
-		<description>Green signal</description>
-		<value>0</value>
-	</Coil>
+    <register address="0033" value="0" dataType="uint16" regType="coil"  />
+    <register address="0040" value="0" dataType="uint16" regType="inputReg"  />
+    <register address="0041" value="0" dataType="uint16" regType="discreteInput"  />
   </device>
-</configuration>
+</config>
